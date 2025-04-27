@@ -1,0 +1,157 @@
+<!--  <link rel="stylesheet" href="index.css">-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weekly Timetable</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <h1>Weekly Class Timetable</h1>
+
+  <table id="timetable">
+    <thead>
+      <tr>
+        <th>Day</th>
+        <th>Classes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Add a New Day</h2>
+  <form id="addForm">
+    <input type="text" id="dayInput" placeholder="Day (e.g. Monday)" required />
+    <textarea id="classesInput" placeholder="Classes (comma separated)" required></textarea>
+    <button type="submit">Add Class</button>
+  </form>
+
+  <h2>Edit Class</h2>
+  <form id="editForm" style="display: none;">
+    <input type="text" id="editDayInput" placeholder="Day (e.g. Monday)" required />
+    <textarea id="editClassesInput" placeholder="Classes (comma separated)" required></textarea>
+    <button type="submit">Save Changes</button>
+  </form>
+
+  <script>
+    const API_URL = 'http://localhost:3000/routes';
+    let editingId = null;
+
+    async function loadTimetable() {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+
+      const tbody = document.querySelector('#timetable tbody');
+      tbody.innerHTML = '';
+
+      data.forEach((entry, index) => {
+        const tr = document.createElement('tr');
+
+        const dayTd = document.createElement('td');
+        dayTd.textContent = entry.day;
+
+        const classesTd = document.createElement('td');
+        classesTd.textContent = entry.classes.join(', ');
+
+        const actionTd = document.createElement('td');
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.classList.add('edit-btn');
+        editBtn.onclick = () => editClass(entry.id, entry);  // Pass the correct id
+
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.classList.add('delete-btn');
+        deleteBtn.onclick = () => deleteClass(entry.id);    // Pass the correct id
+
+        actionTd.appendChild(editBtn);
+        actionTd.appendChild(deleteBtn);
+
+        tr.appendChild(dayTd);
+        tr.appendChild(classesTd);
+        tr.appendChild(actionTd);
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function deleteClass(id) {
+      if (!confirm("Are you sure you want to delete this entry?")) return;
+
+      const res = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (res.ok) {
+        loadTimetable();
+      } else {
+        alert("Failed to delete.");
+      }
+    }
+
+    async function editClass(id, entry) {
+      editingId = id;
+
+      document.getElementById('editForm').style.display = 'block';
+      document.getElementById('editDayInput').value = entry.day;
+      document.getElementById('editClassesInput').value = entry.classes.join(', '); // Join array for easy editing
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const day = document.getElementById('editDayInput').value.trim();
+      const classesRaw = document.getElementById('editClassesInput').value.trim();
+      const classList = classesRaw.split(',').map(c => c.trim()).filter(Boolean);
+
+      if (!day || classList.length === 0) {
+        alert("Please enter a day and at least one class.");
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ day, classes: classList })
+      });
+
+      if (res.ok) {
+        document.getElementById('editForm').reset();
+        document.getElementById('editForm').style.display = 'none';
+        loadTimetable();
+      } else {
+        alert("Failed to update class.");
+      }
+    });
+
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const day = document.getElementById('dayInput').value.trim();
+      const classesRaw = document.getElementById('classesInput').value.trim();
+      const classList = classesRaw.split(',').map(c => c.trim()).filter(Boolean);
+
+      if (!day || classList.length === 0) {
+        alert("Please enter a day and at least one class.");
+        return;
+      }
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ day, classes: classList })
+      });
+
+      if (res.ok) {
+        document.getElementById('addForm').reset();
+        loadTimetable();
+      } else {
+        alert("Failed to add class.");
+      }
+    });
+
+    loadTimetable();
+  </script>
+</body>
+</html>
