@@ -10,7 +10,6 @@ export const getalbum = async (req, res) => {
     title: row.title,
     authors: row.authors,
     releaseDate: row.releaseDate,
-    albums: JSON.parse(row.album_list),
   }));
 
   res.status(200).json(result);
@@ -29,37 +28,49 @@ export const getalbumById = async (req, res) => {
     title: row.title,
     authors: row.authors,
     releaseDate: row.releaseDate,
-    albums: JSON.parse(row.album_list),
   });
 };
 
 export const createalbum = async (req, res) => {
   const db = await dbPromise;
-  const { day, albums } = req.body;
+  const { band, title, authors, releaseDate } = req.body;
 
-  if (!band ||!title ||!authors ||!releaseDate || !Array.isArray(albums)) {
-    return res.status(400).json({ message: "Invalid input" });
+  const authorsArray = await db.run("SELECT authors FROM albums");
+
+  authorsArray.array.forEach(author => {
+      if (author = authors){
+        alert("There can be no albums with the same name!");
+        //abortolni kellene ezt a függvényt ez után
+      }
+  });
+
+  if (!band || !title || !authors || !releaseDate) {
+    return res.status(400).json({ message: "Invalid input something" });
   }
 
   const result = await db.run(
-    "INSERT INTO albums (day, album_list) VALUES (?, ?)",
-    [day, JSON.stringify(albums)]
+    "INSERT INTO albums (band, title, authors, releaseDate) VALUES (?, ?, ?, ?)",
+    [band, title, authors, releaseDate] 
   );
 
-  res.status(201).json({ id: result.lastID, 
-                          band: row.band,
-                          title: row.title,
-                          authors: row.authors,
-                          releaseDate: row.releaseDate, albums });
+  res.status(201).json({
+    id: result.lastID,
+    band,
+    title,
+    authors,
+    releaseDate,
+  });
 };
+
+
 export const updatealbum = async (req, res) => {
   const db = await dbPromise;
   const id = parseInt(req.params.id);  // Use the database ID from the route params
-  const { day, albums } = req.body;   // Extract day and albums from the request body
+  const { band, title, authors, releaseDate } = req.body; // Add missing fields
 
   // Validate input
-  if (!day || !Array.isArray(albums)) {
-    return res.status(400).json({ message: "Invalid input. Day and albums are required." });
+  if (!band || !title || !authors || !releaseDate) {
+    return res.status(400).json({ message: "Invalid input something" });
   }
 
   // Check if the album with the provided ID exists in the database
@@ -70,13 +81,21 @@ export const updatealbum = async (req, res) => {
 
   // Update the album in the database
   await db.run(
-    "UPDATE albums SET day = ?, album_list = ? WHERE id = ?",
-    [day, JSON.stringify(albums), id]
+    "UPDATE albums SET band = ?, title = ?, authors = ?, releaseDate = ? WHERE id = ?",
+    [band,title,authors,releaseDate, id]
   );
 
   // Return the updated album data in the response
-  res.status(200).json({ id, day, albums });
+  res.status(201).json({
+    id: check.lastID,
+    band,
+    title,
+    authors,
+    releaseDate,
+  });
 };
+
+
 export const deletealbum = async (req, res) => {
   const db = await dbPromise;
   const id = parseInt(req.params.id);  // Use the database ID from the route params

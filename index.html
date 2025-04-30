@@ -33,7 +33,6 @@
     <button type="submit">Add Album</button>
   </form>
 
-  <!-- Edit Album Form -->
   <h2>Edit Album</h2>
   <form id="editAlbumForm" style="display: none;">
     <input type="text" id="editBandInput" placeholder="Band Name" required />
@@ -47,7 +46,6 @@
     const API_URL = 'http://localhost:3000/routes';
     let editingId = null;
 
-    // Load all albums
     async function loadAlbums() {
       const response = await fetch(API_URL);
       const data = await response.json();
@@ -95,31 +93,40 @@
 
     // Add new album
     document.getElementById('addAlbumForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
+  e.preventDefault();
 
-      const band = document.getElementById('bandInput').value.trim();
-      const title = document.getElementById('titleInput').value.trim();
-      const authors = document.getElementById('authorsInput').value.trim();
-      const releaseDate = document.getElementById('releaseDateInput').value.trim();
+  const band = document.getElementById('bandInput').value.trim();
+  const title = document.getElementById('titleInput').value.trim();
+  const authors = document.getElementById('authorsInput').value.trim();
+  const releaseDate = document.getElementById('releaseDateInput').value.trim();
 
-      if (!band || !title || !authors || !releaseDate) {
-        alert("Please fill out all fields.");
-        return;
-      }
+  if (!band || !title || !authors || !releaseDate) {
+    alert("Please fill out all fields.");
+    return;
+  }
 
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ band, title, authors, releaseDate })
-      });
+  const authorsArray = authors.split(',').map(a => a.trim()); // Convert authors into an array
 
-      if (res.ok) {
-        loadAlbums();
-        document.getElementById('addAlbumForm').reset();
-      } else {
-        alert("Failed to add album.");
-      }
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ band, title, authors: authorsArray, releaseDate })
     });
+
+    if (res.ok) {
+      loadAlbums();
+      document.getElementById('addAlbumForm').reset();
+    } else {
+      const error = await res.json();
+      alert("Failed to add album: " + error.message); // Display server-side error
+    }
+  } catch (error) {
+    console.error('Error adding album:', error);
+    alert("Error adding album.");
+  }
+});
+
 
     // Edit album
     async function editAlbum(id, album) {
